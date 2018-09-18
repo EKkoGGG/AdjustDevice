@@ -17,8 +17,8 @@ namespace AdjustDevice
     public partial class Form1 : Form
     {
         public string path = Environment.CurrentDirectory + @"\Config.ini";
-        static string getData;
-        public string datatemp;
+        //static string getData;
+        //public string datatemp;
         public string[] command =
             { "01044001000175CA", "01044002000185CA","010440030001D40A","01044004000165CB",
               "010440050001340B","010440060001C40B","01044007000195CB","010440080001A5CB","010440090001F40B"
@@ -31,7 +31,7 @@ namespace AdjustDevice
 
         private void button1_Click(object sender, EventArgs e)
         {
-
+            SearchAndAddSerialToComboBox(serialPort1, comboBox1);
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -61,13 +61,32 @@ namespace AdjustDevice
 
         }
 
+        double temp1;
         private void port_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
-            byte data;
-            data = (byte)serialPort1.ReadByte();
-            string str = Convert.ToString(data, 16).ToUpper();
-            datatemp += (str.Length == 1 ? "0" + str : str);
+            //byte data;
+            //data = (byte)serialPort1.ReadByte();
+            //string str = Convert.ToString(data, 16).ToUpper();
+            //datatemp += (str.Length == 1 ? "0" + str : str);
+
+            //byte data;
+            //data = (byte)serialPort1.ReadByte();
+            //string str = Convert.ToString(data, 16).ToUpper();
+            //datatemp += (str.Length == 1 ? "0" + str : str);
             //textBox1.AppendText((str.Length == 1 ? "0" + str : str));
+
+            byte[] readBuffer = new byte[7];
+
+            serialPort1.Read(readBuffer, 0, 7);
+
+            string InputStr = BitConverter.ToString(readBuffer);
+            string str1 = InputStr.Substring(9, 5);
+            string str2 = str1.Remove(2,1);
+            temp = Convert.ToInt32(str2, 16);
+            temp1 = (double)temp;   
+            //MessageBox.Show(str2);
+            
+            //Thread.Sleep(500);
         }
 
         private void SearchAndAddSerialToComboBox(SerialPort MyPort, ComboBox MyBox)
@@ -106,16 +125,40 @@ namespace AdjustDevice
                 for (int i = 0; i < 9; i++)
                 {
                     SendData(i);
-                    Thread.Sleep(20);
-                    SendData(i);
-                    Thread.Sleep(20);
-                    SendData(i);
-                    Thread.Sleep(20);
-                    timer1.Enabled = true;
-                    Thread.Sleep(100);
-                    dataGridView1.Rows[i].Cells[2].Value = temp;
-
+                    Thread.Sleep(50);
+                    string Magnification = (string)dataGridView1.Rows[i].Cells[3].Value;
+                    double Magnification1 = Convert.ToDouble(Magnification);
+                    dataGridView1.Rows[i].Cells[2].Value = temp1 * Magnification1;
                 }
+
+                //SendData(3);
+                //Thread.Sleep(1000);
+                //MessageBox.Show(temp.ToString());
+
+                //Thread.Sleep(1000);
+                //SendData(1);
+                //timer1.Enabled = true;
+                //for (int i = 0; i < 9; i++)
+                //{
+                //    SendData(i);
+                //    Thread.Sleep(20);
+                //    SendData(i);
+                //    Thread.Sleep(20);
+                //    SendData(i);
+                //    Thread.Sleep(20);
+                //    timer1.Enabled = true;
+                //    Thread.Sleep(100);
+                //    dataGridView1.Rows[i].Cells[2].Value = temp/1000;
+
+                //}
+                //SendData(0);
+                //Thread.Sleep(20);
+                //SendData(0);
+                //Thread.Sleep(20);
+                //SendData(0);
+                //Thread.Sleep(20);
+                //timer1.Enabled = true;
+
             }
             catch (Exception)
             {
@@ -125,14 +168,25 @@ namespace AdjustDevice
 
         public void SendData(int i)
         {
-            byte[] Data = new byte[1];
+            //byte[] Data = new byte[1];
+            //string command1 = command[i];
+            //for (int a = 0; a < command1.Length / 2; a++)
+            //{
+            //    //每次取两位字符组成一个16进制
+            //    Data[0] = Convert.ToByte(command1.Substring(a * 2, 2), 16);
+            //    serialPort1.Write(Data, 0, 1);//循环发送（如果输入字符为0A0BB,则只发送0A,0B）
+            //}
+
+            byte[] Data = new byte[8];
             string command1 = command[i];
             for (int a = 0; a < command1.Length / 2; a++)
             {
                 //每次取两位字符组成一个16进制
-                Data[0] = Convert.ToByte(command1.Substring(a * 2, 2), 16);
-                serialPort1.Write(Data, 0, 1);//循环发送（如果输入字符为0A0BB,则只发送0A,0B）
+                Data[a] = Convert.ToByte(command1.Substring(a * 2, 2), 16);
+                //serialPort1.Write(Data, 0, 8);//循环发送（如果输入字符为0A0BB,则只发送0A,0B）
             }
+            serialPort1.Write(Data, 0, 8);//循环发送（如果输入字符为0A0BB,则只发送0A,0B）
+
         }
 
         private void button3_Click(object sender, EventArgs e)
@@ -242,17 +296,56 @@ namespace AdjustDevice
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-            timer1.Enabled = false;
-            //getData = textBox1.Text.Substring(6, 4);
-            getData = datatemp.Substring(6, 4);
-            temp = Convert.ToInt32(getData, 16);
-            //var temp = Convert.ToInt32(getData, 16);
+            //timer1.Enabled = false;
+            ////getData = textBox1.Text.Substring(6, 4);
+            ////getData = datatemp.Substring(6, 4);
+            ////int temp;
+            ////temp = Convert.ToInt32(getData, 16);
+
+            ////  for (int i = 0; i < 9; i++)
+            //// {
+            //SendData(0);
+            //Thread.Sleep(20);
+            //SendData(0);
+            //Thread.Sleep(20);
+            //SendData(0);
+            //Thread.Sleep(20);
+            //Thread.Sleep(500);
+
+            //getData = datatemp.Substring(6, 4);
+            //temp = Convert.ToInt32(getData, 16);
+
             //dataGridView1.Rows[0].Cells[2].Value = temp;
-            datatemp = "";
-            //textBox1.Text = "";
-            //MessageBox.Show(getData);
-            //var temp = Convert.ToInt32(getData, 10);
-            //MessageBox.Show(temp.ToString());
+            //datatemp = "";
+
+            ////SendData(1);
+            ////Thread.Sleep(20);
+            ////SendData(1);
+            ////Thread.Sleep(20);
+            ////SendData(1);
+            ////Thread.Sleep(20);
+            ////Thread.Sleep(500);
+
+            ////getData = datatemp.Substring(6, 4);
+            ////temp = Convert.ToInt32(getData, 16);
+
+            ////dataGridView1.Rows[1].Cells[2].Value = temp;
+            ////datatemp = "";
+            //// }
+
+            //// timer1.Enabled = false;
+
+
+
+
+
+            ////var temp = Convert.ToInt32(getData, 16);
+            ////dataGridView1.Rows[0].Cells[2].Value = temp;
+            ////datatemp = "";
+            ////textBox1.Text = "";
+            ////MessageBox.Show(getData);
+            ////var temp = Convert.ToInt32(getData, 10);
+            ////MessageBox.Show(temp.ToString());
         }
 
 
@@ -307,7 +400,7 @@ namespace AdjustDevice
             }
             else
             {
-                select = "08";
+                select = "10";
             }
             string current = textBox1.Text;
             float num = float.Parse(current);
