@@ -10,6 +10,7 @@ using System.IO.Ports;
 using System.Runtime.InteropServices;
 using System.IO;
 using System.Threading;
+using System.Text.RegularExpressions;
 
 namespace AdjustDevice
 {
@@ -58,10 +59,11 @@ namespace AdjustDevice
             }
 
             serialPort1.DataReceived += new SerialDataReceivedEventHandler(port_DataReceived);
-
+            comboBox3.Text = "9600";
         }
 
         double temp1;
+        string InputStr;
         private void port_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
             //byte data;
@@ -75,17 +77,18 @@ namespace AdjustDevice
             //datatemp += (str.Length == 1 ? "0" + str : str);
             //textBox1.AppendText((str.Length == 1 ? "0" + str : str));
 
-            byte[] readBuffer = new byte[7];
+            byte[] readBuffer = new byte[10];
 
-            serialPort1.Read(readBuffer, 0, 7);
+            serialPort1.Read(readBuffer, 0, 10);
 
-            string InputStr = BitConverter.ToString(readBuffer);
+            InputStr = BitConverter.ToString(readBuffer);
+            //MessageBox.Show(InputStr);
             string str1 = InputStr.Substring(9, 5);
-            string str2 = str1.Remove(2,1);
+            string str2 = str1.Remove(2, 1);
             temp = Convert.ToInt32(str2, 16);
-            temp1 = (double)temp;   
+            temp1 = (double)temp;
             //MessageBox.Show(str2);
-            
+
             //Thread.Sleep(500);
         }
 
@@ -113,6 +116,8 @@ namespace AdjustDevice
         private void button2_Click(object sender, EventArgs e)
         {
             button2.Enabled = false;
+            label4.ForeColor = Color.Green;
+            serialPort1.BaudRate = Convert.ToInt32(comboBox3.Text);
             if (!button3.Enabled)
             {
                 button3.Enabled = true;
@@ -130,7 +135,7 @@ namespace AdjustDevice
                     double Magnification1 = Convert.ToDouble(Magnification);
                     dataGridView1.Rows[i].Cells[2].Value = temp1 * Magnification1;
                 }
-
+                timer1.Enabled = true;
                 //SendData(3);
                 //Thread.Sleep(1000);
                 //MessageBox.Show(temp.ToString());
@@ -192,7 +197,9 @@ namespace AdjustDevice
         private void button3_Click(object sender, EventArgs e)
         {
             serialPort1.Close();
+            timer1.Enabled = false;
             button3.Enabled = false;
+            label4.ForeColor = Color.Red;
             if (button2.Enabled)
             {
                 button3.Enabled = false;
@@ -297,55 +304,25 @@ namespace AdjustDevice
         private void timer1_Tick(object sender, EventArgs e)
         {
             //timer1.Enabled = false;
-            ////getData = textBox1.Text.Substring(6, 4);
-            ////getData = datatemp.Substring(6, 4);
-            ////int temp;
-            ////temp = Convert.ToInt32(getData, 16);
-
-            ////  for (int i = 0; i < 9; i++)
-            //// {
-            //SendData(0);
-            //Thread.Sleep(20);
-            //SendData(0);
-            //Thread.Sleep(20);
-            //SendData(0);
-            //Thread.Sleep(20);
-            //Thread.Sleep(500);
-
-            //getData = datatemp.Substring(6, 4);
-            //temp = Convert.ToInt32(getData, 16);
-
-            //dataGridView1.Rows[0].Cells[2].Value = temp;
-            //datatemp = "";
-
-            ////SendData(1);
-            ////Thread.Sleep(20);
-            ////SendData(1);
-            ////Thread.Sleep(20);
-            ////SendData(1);
-            ////Thread.Sleep(20);
-            ////Thread.Sleep(500);
-
-            ////getData = datatemp.Substring(6, 4);
-            ////temp = Convert.ToInt32(getData, 16);
-
-            ////dataGridView1.Rows[1].Cells[2].Value = temp;
-            ////datatemp = "";
-            //// }
-
-            //// timer1.Enabled = false;
-
-
-
-
-
-            ////var temp = Convert.ToInt32(getData, 16);
-            ////dataGridView1.Rows[0].Cells[2].Value = temp;
-            ////datatemp = "";
-            ////textBox1.Text = "";
-            ////MessageBox.Show(getData);
-            ////var temp = Convert.ToInt32(getData, 10);
-            ////MessageBox.Show(temp.ToString());
+            try
+            {
+                //serialPort1.Close();
+                //serialPort1.PortName = comboBox1.Text;
+                //serialPort1.Open();
+                //serialPort1.BaudRate = Convert.ToInt32(comboBox3.Text);
+                for (int i = 0; i < 9; i++)
+                {
+                    SendData(i);
+                    Thread.Sleep(50);
+                    string Magnification = (string)dataGridView1.Rows[i].Cells[3].Value;
+                    double Magnification1 = Convert.ToDouble(Magnification);
+                    dataGridView1.Rows[i].Cells[2].Value = temp1 * Magnification1;
+                }
+            }
+            catch
+            {
+            }
+            
         }
 
 
@@ -379,13 +356,28 @@ namespace AdjustDevice
             try
             {
                 SendCorrect();
+                Thread.Sleep(200);
+                textBox2.Text = InputStr;
+                string send = BitConverter.ToString(data);
+                //MessageBox.Show(send);
+                //string crcResult1 = string.Join("-", Regex.Matches(send, @"..").Cast<Match>().ToList());
+                //MessageBox.Show(crcResult1);
+                if (textBox2.Text == send)
+                {
+                    MessageBox.Show("校正成功！！");
+                }
+                else
+                {
+                    MessageBox.Show("校正失败！！ 请检查配置或报文！！");
+                }
             }
             catch
             {
-               
+                MessageBox.Show("校正失败，请检查是否已经打开串口并且填写相应的信息");
             }
         }
-
+        string crcResult;
+        byte[] data = new byte[10];
         public void SendCorrect()
         {
             string adress = comboBox2.Text;
@@ -419,17 +411,25 @@ namespace AdjustDevice
                 Data[a] = Convert.ToByte(unCrc.Substring(a * 2, 2), 16);
             }
             int result = CRC16_Check(Data, 8);
-            crcTemp = result.ToString("x").ToUpper();
+            //MessageBox.Show(result.ToString());
+            crcTemp = result.ToString("x").ToUpper().PadLeft(4, '0');
+            //MessageBox.Show(crcTemp);
             crc = crcTemp.Substring(2, 2) + crcTemp.Substring(0, 2);
-            string crcResult = unCrc + crc;
+            crcResult = unCrc + crc;
             //MessageBox.Show(crcResult);
-            byte[] data = new byte[10];
+            //byte[] data = new byte[10];
             for (int b = 0; b < crcResult.Length / 2; b++)
             {
                 data[b] = Convert.ToByte(crcResult.Substring(b * 2, 2), 16);
             }
             serialPort1.Write(data, 0, 10);
-            MessageBox.Show("校正成功！！");
+            //MessageBox.Show("校正成功！！");
         }
+
+
+
+
+
+
     }
 }
