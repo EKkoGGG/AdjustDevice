@@ -18,11 +18,10 @@ namespace AdjustDevice
     public partial class Form1 : Form
     {
         public string path = Environment.CurrentDirectory + @"\Config.ini";
-        //static string getData;
-        //public string datatemp;
+        // 0x4001 ~0x4009 查询报文
         public string[] command =
             { "01044001000175CA", "01044002000185CA","010440030001D40A","01044004000165CB",
-              "010440050001340B","010440060001C40B","01044007000195CB","010440080001A5CB","010440090001F40B"
+              "010440050001340B","010440060001C40B","01044007000195CB","010440080001A5C8","010440090001F408"
         };
         public Form1()
         {
@@ -30,14 +29,15 @@ namespace AdjustDevice
             System.Windows.Forms.Control.CheckForIllegalCrossThreadCalls = false;
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        // 扫描串口
+        private void button1_Click(object sender, EventArgs e) 
         {
-            SearchAndAddSerialToComboBox(serialPort1, comboBox1);
+            SearchAndAddSerialToComboBox(serialPort1, SerialComboBox);
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            SearchAndAddSerialToComboBox(serialPort1, comboBox1);
+            SearchAndAddSerialToComboBox(serialPort1, SerialComboBox);
             dataGridView1.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
             dataGridView1.Rows.Add(9);
             IniFile ini = new IniFile(path);
@@ -59,37 +59,44 @@ namespace AdjustDevice
             }
 
             serialPort1.DataReceived += new SerialDataReceivedEventHandler(port_DataReceived);
-            comboBox3.Text = "9600";
+            BaudRateComboBox.Text = "9600"; //默认波特率
         }
 
+        int temp;
         double temp1;
-        string InputStr;
+        double temp2;
+        int temp22;
+        string str3;
+        string InputStr; // 接受到的报文
         private void port_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
-            //byte data;
-            //data = (byte)serialPort1.ReadByte();
-            //string str = Convert.ToString(data, 16).ToUpper();
-            //datatemp += (str.Length == 1 ? "0" + str : str);
-
-            //byte data;
-            //data = (byte)serialPort1.ReadByte();
-            //string str = Convert.ToString(data, 16).ToUpper();
-            //datatemp += (str.Length == 1 ? "0" + str : str);
-            //textBox1.AppendText((str.Length == 1 ? "0" + str : str));
-
             byte[] readBuffer = new byte[10];
-
             serialPort1.Read(readBuffer, 0, 10);
-
             InputStr = BitConverter.ToString(readBuffer);
-            //MessageBox.Show(InputStr);
-            string str1 = InputStr.Substring(9, 5);
+            string str1 = InputStr.Substring(9, 5); //截取报文里需要显示的信息
             string str2 = str1.Remove(2, 1);
             temp = Convert.ToInt32(str2, 16);
-            temp1 = (double)temp;
-            //MessageBox.Show(str2);
+            str3 = Convert.ToString(temp, 2).PadLeft(16, '0');//转为二进制
+            if (str3 != "0")
+            {
+                if (str3.Substring(0, 1) == "1")//判断第一位，1为负数，0为正数
+                {
+                    int temp15 = Convert.ToInt32(str3.Substring(1, 15), 2); // 二进制转为十进制整数
+                    temp22 = temp15 * (-1);  //负的 乘-1
+                }
+                else
+                {
+                    int temp16 = Convert.ToInt32(str3.Substring(1, 15), 2);
+                    temp22 = temp16;
+                }
+            }
+            else
+            {
+                temp22 = 0;
+            }
 
-            //Thread.Sleep(500);
+            temp2 = (double)temp22; //转换为double类型
+            temp1 = (double)temp;
         }
 
         private void SearchAndAddSerialToComboBox(SerialPort MyPort, ComboBox MyBox)
@@ -113,57 +120,39 @@ namespace AdjustDevice
             }
         }
 
+        //打开串口
         private void button2_Click(object sender, EventArgs e)
         {
-            button2.Enabled = false;
+            OpenPortButton.Enabled = false;
             label4.ForeColor = Color.Green;
-            serialPort1.BaudRate = Convert.ToInt32(comboBox3.Text);
-            if (!button3.Enabled)
+            serialPort1.BaudRate = Convert.ToInt32(BaudRateComboBox.Text);
+            if (!CloseSerialButton.Enabled)
             {
-                button3.Enabled = true;
+                CloseSerialButton.Enabled = true;
             }
             try
             {
-                serialPort1.PortName = comboBox1.Text;
+                serialPort1.PortName = SerialComboBox.Text;
                 serialPort1.Open();
 
                 for (int i = 0; i < 9; i++)
                 {
-                    SendData(i);
-                    Thread.Sleep(50);
-                    string Magnification = (string)dataGridView1.Rows[i].Cells[3].Value;
+                    SendData(i); //发送第i条报文
+                    Thread.Sleep(85);
+                    string Magnification = (string)dataGridView1.Rows[i].Cells[3].Value; //倍率
                     double Magnification1 = Convert.ToDouble(Magnification);
-                    dataGridView1.Rows[i].Cells[2].Value = temp1 * Magnification1;
+                    if (dataGridView1.Rows[i].Cells[5].Value.ToString() == "无符号")//检测有无符号
+                    {
+                        var tempchange = temp1 * Magnification1;//返回值乘倍率得到结果
+                        dataGridView1.Rows[i].Cells[2].Value = tempchange.ToString("00.000");
+                    }
+                    else
+                    {
+                        var tempchange = temp2 * Magnification1;
+                        dataGridView1.Rows[i].Cells[2].Value = tempchange.ToString("00.000");
+                    }
                 }
                 timer1.Enabled = true;
-                //SendData(3);
-                //Thread.Sleep(1000);
-                //MessageBox.Show(temp.ToString());
-
-                //Thread.Sleep(1000);
-                //SendData(1);
-                //timer1.Enabled = true;
-                //for (int i = 0; i < 9; i++)
-                //{
-                //    SendData(i);
-                //    Thread.Sleep(20);
-                //    SendData(i);
-                //    Thread.Sleep(20);
-                //    SendData(i);
-                //    Thread.Sleep(20);
-                //    timer1.Enabled = true;
-                //    Thread.Sleep(100);
-                //    dataGridView1.Rows[i].Cells[2].Value = temp/1000;
-
-                //}
-                //SendData(0);
-                //Thread.Sleep(20);
-                //SendData(0);
-                //Thread.Sleep(20);
-                //SendData(0);
-                //Thread.Sleep(20);
-                //timer1.Enabled = true;
-
             }
             catch (Exception)
             {
@@ -171,47 +160,37 @@ namespace AdjustDevice
 
         }
 
+        //发送报文，参数i代表第几条报文
         public void SendData(int i)
         {
-            //byte[] Data = new byte[1];
-            //string command1 = command[i];
-            //for (int a = 0; a < command1.Length / 2; a++)
-            //{
-            //    //每次取两位字符组成一个16进制
-            //    Data[0] = Convert.ToByte(command1.Substring(a * 2, 2), 16);
-            //    serialPort1.Write(Data, 0, 1);//循环发送（如果输入字符为0A0BB,则只发送0A,0B）
-            //}
-
             byte[] Data = new byte[8];
             string command1 = command[i];
             for (int a = 0; a < command1.Length / 2; a++)
             {
                 //每次取两位字符组成一个16进制
-                Data[a] = Convert.ToByte(command1.Substring(a * 2, 2), 16);
-                //serialPort1.Write(Data, 0, 8);//循环发送（如果输入字符为0A0BB,则只发送0A,0B）
+                Data[a] = Convert.ToByte(command1.Substring(a * 2, 2), 16);              
             }
-            serialPort1.Write(Data, 0, 8);//循环发送（如果输入字符为0A0BB,则只发送0A,0B）
-
+            serialPort1.Write(Data, 0, 8);//写串口
         }
 
+        //关闭串口
         private void button3_Click(object sender, EventArgs e)
         {
             serialPort1.Close();
             timer1.Enabled = false;
-            button3.Enabled = false;
+            CloseSerialButton.Enabled = false;
             label4.ForeColor = Color.Red;
-            if (button2.Enabled)
+            if (OpenPortButton.Enabled)
             {
-                button3.Enabled = false;
+                CloseSerialButton.Enabled = false;
             }
             else
             {
-                button2.Enabled = true;
+                OpenPortButton.Enabled = true;
             }
-
-
-
         }
+
+        //保存配置
         private void button4_Click(object sender, EventArgs e)
         {
             IniFile ini = new IniFile(path);
@@ -299,34 +278,44 @@ namespace AdjustDevice
             }
         }
 
-        int temp;
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-            //timer1.Enabled = false;
             try
             {
-                //serialPort1.Close();
-                //serialPort1.PortName = comboBox1.Text;
-                //serialPort1.Open();
-                //serialPort1.BaudRate = Convert.ToInt32(comboBox3.Text);
                 for (int i = 0; i < 9; i++)
                 {
                     SendData(i);
-                    Thread.Sleep(50);
+                    Thread.Sleep(85);
                     string Magnification = (string)dataGridView1.Rows[i].Cells[3].Value;
                     double Magnification1 = Convert.ToDouble(Magnification);
-                    dataGridView1.Rows[i].Cells[2].Value = temp1 * Magnification1;
+
+
+
+                    if (dataGridView1.Rows[i].Cells[5].Value.ToString() == "无符号")
+                    {
+                        var tempchange = temp1 * Magnification1;
+
+                        dataGridView1.Rows[i].Cells[2].Value = tempchange.ToString("00.000");
+
+
+                    }
+                    else
+                    {
+                        var tempchange = temp2 * Magnification1;
+                        dataGridView1.Rows[i].Cells[2].Value = tempchange.ToString("00.000");
+
+                    }
                 }
             }
             catch
             {
             }
-            
+
         }
 
 
-
+        //CRC验证
         public int CRC16_Check(byte[] Pushdata, int length)
         {
             int Reg_CRC = 0xffff;
@@ -351,18 +340,16 @@ namespace AdjustDevice
             return (Reg_CRC & 0xffff);
         }
 
+        //校正/下发
         private void button5_Click(object sender, EventArgs e)
         {
             try
             {
                 SendCorrect();
                 Thread.Sleep(200);
-                textBox2.Text = InputStr;
+                ReturnValueTextbox.Text = InputStr;
                 string send = BitConverter.ToString(data);
-                //MessageBox.Show(send);
-                //string crcResult1 = string.Join("-", Regex.Matches(send, @"..").Cast<Match>().ToList());
-                //MessageBox.Show(crcResult1);
-                if (textBox2.Text == send)
+                if (ReturnValueTextbox.Text == send)
                 {
                     MessageBox.Show("校正成功！！");
                 }
@@ -380,12 +367,11 @@ namespace AdjustDevice
         byte[] data = new byte[10];
         public void SendCorrect()
         {
-            string adress = comboBox2.Text;
+            string adress = CorrectComboBox.Text;
             string select;
             int i = adress.IndexOf("x");
             int j = adress.IndexOf(")");
             adress = (adress.Substring(i + 1)).Substring(0, j - i - 1);
-            //MessageBox.Show(adress);
             if (radioButton1.Checked)
             {
                 select = "06";
@@ -394,14 +380,11 @@ namespace AdjustDevice
             {
                 select = "10";
             }
-            string current = textBox1.Text;
+            string current = CurrentValueTextBox.Text;
             float num = float.Parse(current);
-            //MessageBox.Show(num.ToString());
             var num1 = BitConverter.GetBytes(num);
             current = BitConverter.ToString(num1.Reverse().ToArray()).Replace("-", "");
-            //MessageBox.Show(current);
             string unCrc = "01" + select + adress + current;
-            //MessageBox.Show(unCrc);
             byte[] Data = new byte[8];
             string crcTemp;
             string crc;
@@ -411,25 +394,14 @@ namespace AdjustDevice
                 Data[a] = Convert.ToByte(unCrc.Substring(a * 2, 2), 16);
             }
             int result = CRC16_Check(Data, 8);
-            //MessageBox.Show(result.ToString());
             crcTemp = result.ToString("x").ToUpper().PadLeft(4, '0');
-            //MessageBox.Show(crcTemp);
             crc = crcTemp.Substring(2, 2) + crcTemp.Substring(0, 2);
             crcResult = unCrc + crc;
-            //MessageBox.Show(crcResult);
-            //byte[] data = new byte[10];
             for (int b = 0; b < crcResult.Length / 2; b++)
             {
                 data[b] = Convert.ToByte(crcResult.Substring(b * 2, 2), 16);
             }
             serialPort1.Write(data, 0, 10);
-            //MessageBox.Show("校正成功！！");
         }
-
-
-
-
-
-
     }
 }
