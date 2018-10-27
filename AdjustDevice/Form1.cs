@@ -145,13 +145,16 @@ namespace AdjustDevice
                     {
                         var tempchange = temp1 * Magnification1;//返回值乘倍率得到结果
                         dataGridView1.Rows[i].Cells[2].Value = tempchange.ToString("00.000");
+                        DataHisTextbox.AppendText(tempchange.ToString("00.000")+"  ");
                     }
                     else
                     {
                         var tempchange = temp2 * Magnification1;
                         dataGridView1.Rows[i].Cells[2].Value = tempchange.ToString("00.000");
+                        DataHisTextbox.AppendText(tempchange.ToString("00.000") + "  ");
                     }
                 }
+                DataHisTextbox.AppendText("\n");
                 timer1.Enabled = true;
             }
             catch (Exception)
@@ -297,6 +300,7 @@ namespace AdjustDevice
                         var tempchange = temp1 * Magnification1;
 
                         dataGridView1.Rows[i].Cells[2].Value = tempchange.ToString("00.000");
+                        DataHisTextbox.AppendText(tempchange.ToString("00.000") + "  ");
 
 
                     }
@@ -304,9 +308,13 @@ namespace AdjustDevice
                     {
                         var tempchange = temp2 * Magnification1;
                         dataGridView1.Rows[i].Cells[2].Value = tempchange.ToString("00.000");
+                        DataHisTextbox.AppendText(tempchange.ToString("00.000") + "  ");
 
                     }
+
                 }
+                DataHisTextbox.AppendText("\n");
+
             }
             catch
             {
