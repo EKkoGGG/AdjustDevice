@@ -138,7 +138,7 @@ namespace AdjustDevice
                 for (int i = 0; i < 9; i++)
                 {
                     SendData(i); //发送第i条报文
-                    Thread.Sleep(85);
+                    Thread.Sleep(300);
                     string Magnification = (string)dataGridView1.Rows[i].Cells[3].Value; //倍率
                     double Magnification1 = Convert.ToDouble(Magnification);
                     if (dataGridView1.Rows[i].Cells[5].Value.ToString() == "无符号")//检测有无符号
@@ -289,7 +289,7 @@ namespace AdjustDevice
                 for (int i = 0; i < 9; i++)
                 {
                     SendData(i);
-                    Thread.Sleep(85);
+                    Thread.Sleep(300);
                     string Magnification = (string)dataGridView1.Rows[i].Cells[3].Value;
                     double Magnification1 = Convert.ToDouble(Magnification);
 
